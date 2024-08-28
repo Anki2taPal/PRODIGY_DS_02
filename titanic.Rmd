@@ -1,0 +1,221 @@
+---
+title: "Titanic"
+output:
+  html_document: default
+  pdf_document: default
+date: "2024-08-21"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# The data-set
+
+Data Dictionary
+
+Variable	
+survival:	Survival	0 = No, 1 = Yes
+
+pclass:	Ticket class	1 = 1st, 2 = 2nd, 3 = 3rd
+
+sex:	Sex	
+
+Age:	Age in years	
+
+sibsp:	# of siblings / spouses aboard the Titanic
+
+parch:	# of parents / children aboard the Titanic
+
+ticket:	Ticket number	
+
+fare:	Passenger fare
+
+cabin	:Cabin number	
+
+embarked:	Port of Embarkation	C = Cherbourg, Q = Queenstown, S = Southampton
+
+pclass: A proxy for socio-economic status (SES)
+
+1st = Upper
+2nd = Middle
+3rd = Lower
+
+age: Age is fractional if less than 1. If the age is estimated, is it in the form of xx.5
+
+sibsp: The dataset defines family relations in this way...
+
+Sibling = brother, sister, stepbrother, stepsister
+
+Spouse = husband, wife (mistresses and fiancés were ignored)
+
+parch: The dataset defines family relations in this way...
+
+Parent = mother, father
+
+Child = daughter, son, stepdaughter, stepson
+
+Some children travelled only with a nanny, therefore parch=0 for them.
+
+# TRAIN DATA
+```{r,comment=NA,echo=FALSE}
+library("rmarkdown")
+data=read.csv("C:/Users/HP/Downloads/train.csv")
+paged_table(data)
+```
+
+# Dimension of the data-set
+
+```{r,comment=NA,echo=FALSE}
+dim(data)
+```
+
+# Variables in the data-set
+
+```{r,comment=NA,echo=FALSE}
+str(data)
+```
+
+# Column Names
+
+```{r,comment=NA,echo=FALSE}
+colnames(data)
+```
+
+### **We remove the 1st,4th,9th and 11th column from the data-set**
+
+```{r,comment=NA,echo=FALSE}
+ndata=data[-c(1,4,9,11)]
+```
+
+### **We replace the NA values in the Age column with the mean of that column and convert the character variables into factor variables.**
+
+```{r,comment=NA,echo=FALSE}
+age.mean=mean(ndata$Age,na.rm=TRUE)
+ndata$Age=replace(ndata$Age,is.na(ndata$Age)==1,age.mean)
+ndata$Sex=as.factor(data$Sex)
+ndata$Embarked=as.factor(data$Embarked)
+ndata$Pclass=as.factor(data$Pclass)
+```
+
+### **In the dataset, we remove the empty cells from the 'Embark' column**
+
+```{r,comment=NA,echo=FALSE}
+index=which(ndata$Embarked=="")
+ndata=ndata[-index,]
+```
+
+# PLOTS
+```{r,echo=FALSE}
+library("ggplot2")
+#Survived
+data=data.frame("Category"=c("0","1"),"values"=c(sum(ndata$Survived=="0"),sum(ndata$Survived=="1")))
+ggplot(data,aes(x=Category,y=values,fill=Category))+geom_bar(stat="identity")+geom_text(aes(label=values))+scale_fill_manual(values=c("orange","blue"))+scale_x_discrete(limits =c("0","1"))+labs(title="Survived")
+#Pclass
+data=data.frame("Category"=c("1","2","3"),"values"=c(sum(ndata$Pclass=="1"),sum(ndata$Pclass=="2"),sum(ndata$Pclass=="3")))
+ggplot(data,aes(x=Category,y=values,fill=Category))+geom_bar(stat="identity")+geom_text(aes(label=values))+scale_fill_manual(values=c("green","#993300","#666666"))+scale_x_discrete(limits =c("1","2","3"))+labs(title="Pclass")
+#Sex
+data1=data.frame("cat1"=c("female","male"),"val1"=c(sum(ndata$Sex=="female"),sum(ndata$Sex=="male")))
+slices1=c(sum(ndata$Sex=="female"),sum(ndata$Sex=="male"))
+frac1=(slices1/sum(slices1))
+ymax1=cumsum(frac1)
+ymin1=c(0,head(ymax1,n=-1))
+labposi1=(ymax1+ymin1)/2
+labls1=paste0(c("female","male"),"\n value:",paste(round(frac1*100)),"%",sep="")
+ggplot(data1,aes(ymax=ymax1,ymin=ymin1,xmax=4,xmin=3,fill=cat1))+geom_rect()+geom_label(x=3.5,aes(y=labposi1,label=labls1),size=3)+coord_polar(theta="y")+xlim(c(2,4))+theme_void()+theme(legend.position = "none")+labs(title=" Sex")+scale_fill_manual(values=c("yellow","purple"))
+#Age
+
+ggplot(data=ndata,aes(x=Age))+geom_histogram(aes(y=..density..),bins=24,col="black",fill="#00FF99")+labs(title="Age")+geom_density()
+#Fare
+ggplot(data=ndata,aes(x=Fare))+geom_histogram(aes(y=..density..),bins=24,col="black",fill="#66CCFF")+labs(title="Fare")+geom_density()
+#Parch
+ggplot(data=ndata,aes(x=Parch))+geom_histogram(aes(y=..density..),bins=24,col="black",fill="#FFFF99")+labs(title="Parch")+geom_density()
+
+
+
+#Embarked
+data=data.frame("Category"=c("C","Q","S"),"values"=c(sum(ndata$Embarked=="C"),sum(ndata$Embarked=="Q"),sum(ndata$Embarked=="S")))
+ggplot(data,aes(x=Category,y=values,fill=Category))+geom_bar(stat="identity")+geom_text(aes(label=values))+scale_fill_manual(values=c("green","#993300","yellow"))+scale_x_discrete(limits =c("C","Q","S"))+labs(title=" Embarked",x="",y="Count")
+
+
+
+```
+
+### ***Since our response variable is binary, taking only the values 0 and 1, we use a logistic regression model.***
+
+```{r,comment=NA,echo=FALSE}
+model=glm(Survived~Pclass+Sex+Age+SibSp+Parch+Fare+Embarked,family="binomial",data=ndata)
+summary(model)
+```
+
+*We can see that 'Pclass2', 'Pclass3', 'SexMale', 'Age', and 'SibSp' are statistically significant, as their p-values are less than 0.05.*
+
+*To improve the fit of our model we use AIC backward method.* 
+
+### ***Backward elimination based on the Akaike Information Criterion(AIC)***
+
+```{r,comment=NA,,echo=FALSE}
+model2=step(model,direction="backward")
+```
+
+*We have selected the variables 'Embarked', 'SibSp', 'Age', 'Pclass', and 'Sex' for our regression model.*
+
+### **Half-Normal Probability (hnp) Plot**
+
+```{r,comment=NA,echo=FALSE}
+library("hnp")
+hnp(model2)
+```
+
+*Most of the residuals fall within these confidence bands, suggesting that the model is capturing the majority of the variability in the data accurately.*
+
+## **Residual vs Fitted Plot**
+
+```{r,comment=NA,echo=FALSE}
+plot(residuals(model2,"pearson"),main="Residuals Plot",xlab="Fitted Values",ylab="Pearson Residuals")
+```
+
+### **Receiver Operator Characteristic (ROC) Curve and Area Under the Curve (AUC)**
+
+```{r,comment=NA,echo=FALSE}
+library("caret")
+library("ROCR")
+pred=predict(model2,type="response",newdata=ndata)
+pred1=prediction(pred,ndata$Survived)
+pref=performance(pred1,"tpr","fpr")
+plot(pref,print.cutoffs.at=seq(0,1,0.1),colorize=TRUE) 
+abline(a=0,b=1)
+auc=performance(pred1,"auc")@y.values[[1]]
+legend(0.6,0.4,auc,title="AUC",cex=0.9)
+```
+
+*The model's AUC is 0.8567, indicating good predictive performance.*
+
+# TEST DATA
+
+```{r,comment=NA,echo=FALSE}
+dat=read.csv("C:\\Users\\HP\\Downloads\\test.csv")
+paged_table(dat)
+```
+
+
+```{r,comment=NA,echo=FALSE}
+ndat=dat[-c(1,4,9,11)]
+age.mean=mean(ndat$Age,na.rm=TRUE)
+ndat$Age=replace(ndat$Age,is.na(ndat$Age)==1,age.mean)
+ndat$Sex=as.factor(dat$Sex)
+ndat$Embarked=as.factor(dat$Embarked)
+ndat$Pclass=as.factor(dat$Pclass)
+
+```
+
+
+# PREDICTION
+
+```{r,comment=NA,echo=FALSE}
+predi=predict(model2,ndat)
+val=ifelse((predi)>0.5,1,0)
+r=data.frame("PassengerId"=dat[,1],"Survived"=val)
+paged_table(r)
+```
+
