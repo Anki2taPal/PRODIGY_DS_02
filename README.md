@@ -5,7 +5,7 @@ This repository contains the work completed for Task 2 of my Data Science intern
 
 # Objectives
 <ul> <li> Cleaning and preprocessing the dataset to ensure accurate and reliable analysis.</li>
-<li> Using AUC-ROC curves and hnp plots to evaluate the model's performance.</li>
+<li> Using AUC-ROC and hnp plots to evaluate the model's performance.</li>
 <li>Making predictions on the test dataset and assessing model accuracy.</li></ul>
 
 # Knowledge Gained
